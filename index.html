@@ -1,0 +1,516 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Lab Motherboard Virtual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+/* Layout: header + tab bar; each tab = board/tool on the left, explanation panel on the right; stacks on phones */
+:root {
+  --bg: #f4f6fb; --surface: #ffffff; --surface-2: #e9edf8; --line: #d3d9ea;
+  --fg: #1b1f3b; --muted: #5c6079; --accent: #0089a6; --accent-2: #7c4dff;
+  --warn: #b07d00; --warn-bg: #fff4d1; --bad: #c0392b; --bad-bg: #fde7e4; --good: #1e8c82; --good-bg: #ddf5f2;
+  --cpu: #00b4d8; --chip: #7c4dff; --pwr: #ffb703; --other: #9aa3c9;
+  --display: "Source Serif 4", Cambria, Georgia, serif;
+  --body: "IBM Plex Sans", "Segoe UI", Calibri, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "Courier New", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11142a; --surface: #1b2142; --surface-2: #232a52; --line: #343c6e;
+  --fg: #eef1fb; --muted: #a9b1d6; --accent: #39c7e6; --accent-2: #a98bff;
+  --warn: #ffcf57; --warn-bg: #3b3218; --bad: #ff8a7a; --bad-bg: #3d1f22; --good: #4fd6c8; --good-bg: #17363a;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #11142a; --surface: #1b2142; --surface-2: #232a52; --line: #343c6e;
+  --fg: #eef1fb; --muted: #a9b1d6; --accent: #39c7e6; --accent-2: #a98bff;
+  --warn: #ffcf57; --warn-bg: #3b3218; --bad: #ff8a7a; --bad-bg: #3d1f22; --good: #4fd6c8; --good-bg: #17363a;
+  color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; padding-inline: 16px; padding-block: 0 40px; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+header { padding-block: 22px 10px; display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--display); font-size: clamp(26px, 4vw, 36px); margin: 0; line-height: 1.1; text-wrap: balance; }
+.kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+.sub { color: var(--muted); margin: 6px 0 0; max-width: 62ch; }
+nav.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; gap: 6px; overflow-x: auto; padding-block: 10px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+nav.tabs button { font: 600 14px var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.card h2 { font-family: var(--display); font-size: 22px; margin: 0 0 4px; }
+.card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 14px 0 6px; }
+.muted { color: var(--muted); }
+.boardbox { background: #0e3328; border-radius: 12px; padding: 10px; }
+svg.board { width: 100%; height: auto; display: block; }
+.comp { cursor: pointer; }
+.comp .hit { fill: transparent; stroke: transparent; stroke-width: 3; }
+.comp:hover .hit, .comp:focus .hit { stroke: #ffffff; }
+.comp.sel .hit { stroke: #ffb703; stroke-width: 4; }
+.comp:focus { outline: none; }
+.silk { font-family: var(--mono); font-size: 9px; fill: #dcefe5; pointer-events: none; letter-spacing: .03em; }
+.hide-silk .silk { display: none; }
+.paths .comp[data-path="cpu"] .hit { stroke: var(--cpu); stroke-width: 3.5; }
+.paths .comp[data-path="chipset"] .hit { stroke: var(--chip); stroke-width: 3.5; }
+.paths .comp[data-path="daya"] .hit { stroke: var(--pwr); stroke-width: 3.5; }
+.paths .comp.sel .hit { stroke: #ffffff; stroke-width: 4.5; }
+.comp.right .hit { stroke: #4fd6c8 !important; stroke-width: 5 !important; }
+.comp.wrong .hit { stroke: #ff6b5b !important; stroke-width: 5 !important; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; align-items: center; }
+.toolbar label { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; cursor: pointer; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 10px 0 0; }
+dl.facts dt { font-size: 13px; color: var(--muted); }
+dl.facts dd { margin: 0; }
+.chip { display: inline-block; font: 600 12px var(--mono); padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.chip.cpu { color: var(--accent); } .chip.chipset { color: var(--accent-2); } .chip.daya { color: var(--warn); } .chip.lain { color: var(--muted); }
+.code { font-family: var(--mono); font-size: 13px; background: var(--surface-2); padding: 1px 6px; border-radius: 4px; }
+.btn { font: 600 14px var(--body); border-radius: 8px; padding: 9px 14px; border: 1px solid var(--fg); background: var(--fg); color: var(--bg); cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.q { font-size: 17px; font-weight: 600; margin: 8px 0; min-height: 3.2em; }
+.progress { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+.feedback { padding: 10px 12px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
+.feedback.ok { background: var(--good-bg); color: var(--good); }
+.feedback.no { background: var(--bad-bg); color: var(--bad); }
+.score { font-family: var(--display); font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+select { width: 100%; }
+input[type="text"], input[type="number"], select { font: 14px var(--body); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); max-width: 100%; }
+.tbl-wrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.t th, table.t td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.t th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+table.t td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.status { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+.status.ok { background: var(--good-bg); color: var(--good); }
+.status.warn { background: var(--warn-bg); color: var(--warn); }
+.status.bad { background: var(--bad-bg); color: var(--bad); }
+.status.off { background: var(--surface-2); color: var(--muted); }
+.meter { height: 14px; background: var(--surface-2); border-radius: 99px; overflow: hidden; margin: 6px 0; }
+.meter > span { display: block; height: 100%; border-radius: 99px; }
+.diagram { display: grid; gap: 10px; }
+.node { border-radius: 10px; padding: 10px 12px; font-weight: 600; }
+.node.cpu { background: var(--fg); color: var(--bg); }
+.node.chip { background: var(--accent-2); color: #fff; }
+.node small { display: block; font: 400 12px var(--body); opacity: .85; }
+.kids { display: flex; flex-wrap: wrap; gap: 6px; }
+.kid { font-size: 13px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px; padding: 6px 8px; }
+.kid b { font-family: var(--mono); font-size: 12px; }
+.note { font-size: 13px; color: var(--muted); }
+.formgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.formgrid label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.big { font-family: var(--display); font-size: 38px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.result-line { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; }
+.resultcard { border: 2px dashed var(--line); border-radius: 12px; padding: 14px; margin-top: 12px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <div class="kicker">Arsitektur dan Organisasi Komputer · Pertemuan 6</div>
+    <h1>Lab Motherboard Virtual</h1>
+    <p class="sub">Praktikum identifikasi jalur data tanpa hardware: jelajahi motherboard ATX ilustrasi, uji diri dengan kuis, atur pemasangan perangkat, dan hitung bandwidth PCIe.</p>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Bagian lab">
+  <button role="tab" id="tab-jelajah" aria-selected="true" data-tab="jelajah">1 · Jelajah Komponen</button>
+  <button role="tab" id="tab-kuis" aria-selected="false" data-tab="kuis">2 · Kuis Identifikasi</button>
+  <button role="tab" id="tab-sharing" aria-selected="false" data-tab="sharing">3 · Pasang Perangkat & Lane Sharing</button>
+  <button role="tab" id="tab-kalkulator" aria-selected="false" data-tab="kalkulator">4 · Kalkulator PCIe</button>
+</nav>
+
+<!-- BOARD (dipindah antar tab 1 & 2) -->
+<template id="board-tpl">
+<svg class="board" viewBox="0 0 600 480" role="img" aria-label="Ilustrasi motherboard ATX">
+  <rect x="0" y="0" width="600" height="480" rx="8" fill="#1d5a47"/>
+  <g fill="#0e3328"><circle cx="20" cy="220" r="5"/><circle cx="300" cy="20" r="5"/><circle cx="580" cy="20" r="5"/><circle cx="20" cy="460" r="5"/><circle cx="580" cy="460" r="5"/><circle cx="300" cy="460" r="5"/></g>
+  <g stroke="#2f7a61" stroke-width="1.2" fill="none" opacity=".8">
+    <path d="M280 150 H318"/><path d="M280 160 H318"/><path d="M280 170 H318"/><path d="M280 180 H318"/>
+    <path d="M210 226 V244"/><path d="M230 226 V244"/><path d="M190 226 V282"/>
+    <path d="M280 200 C380 230 400 260 410 320"/><path d="M290 214 C370 250 390 280 410 330"/>
+  </g>
+  <g class="comp" data-id="io" data-path="chipset" tabindex="0"><rect x="8" y="18" width="44" height="182" rx="3" fill="#6b7185"/><g fill="#9aa3c9"><rect x="16" y="28" width="28" height="16"/><rect x="16" y="52" width="28" height="16"/><rect x="16" y="76" width="28" height="22"/><rect x="16" y="108" width="28" height="16"/><circle cx="30" cy="148" r="6"/><circle cx="30" cy="170" r="6"/></g><rect class="hit" x="8" y="18" width="44" height="182" rx="3"/><text class="silk" x="12" y="212">REAR_IO</text></g>
+  <g class="comp" data-id="eps" data-path="daya" tabindex="0"><rect x="64" y="10" width="56" height="20" rx="2" fill="#e0b23a"/><rect class="hit" x="64" y="10" width="56" height="20" rx="2"/><text class="silk" x="126" y="24">CPU_PWR</text></g>
+  <g class="comp" data-id="vrm" data-path="daya" tabindex="0"><rect x="62" y="40" width="34" height="170" rx="3" fill="#8892a8"/><rect x="104" y="40" width="176" height="30" rx="3" fill="#8892a8"/><g stroke="#6b7185" stroke-width="2"><path d="M70 50 V200"/><path d="M79 50 V200"/><path d="M88 50 V200"/><path d="M112 48 H272"/><path d="M112 56 H272"/><path d="M112 64 H272"/></g><path class="hit" d="M62 40 H280 V70 H96 V210 H62 Z"/></g>
+  <g class="comp" data-id="socket" data-path="lain" tabindex="0"><rect x="140" y="86" width="140" height="140" rx="4" fill="#c9ccd6"/><rect x="160" y="106" width="100" height="100" fill="#aeb3c2" stroke="#8a90a3"/><rect class="hit" x="140" y="86" width="140" height="140" rx="4"/><text class="silk" x="185" y="160" style="fill:#3b415f">CPU</text></g>
+  <g class="comp" data-id="dimm" data-path="cpu" tabindex="0"><g fill="#00b4d8"><rect x="318" y="34" width="12" height="236" rx="2"/><rect x="338" y="34" width="12" height="236" rx="2"/><rect x="358" y="34" width="12" height="236" rx="2"/><rect x="378" y="34" width="12" height="236" rx="2"/></g><rect class="hit" x="314" y="30" width="80" height="244" rx="3"/><text class="silk" x="316" y="26">A1 A2 B1 B2</text></g>
+  <g class="comp" data-id="atx24" data-path="daya" tabindex="0"><rect x="562" y="110" width="24" height="96" rx="2" fill="#e0b23a"/><rect class="hit" x="562" y="110" width="24" height="96" rx="2"/><text class="silk" x="520" y="222">ATX_PWR</text></g>
+  <g class="comp" data-id="m2_1" data-path="cpu" tabindex="0"><rect x="150" y="244" width="150" height="14" rx="2" fill="#7c4dff"/><circle cx="296" cy="251" r="3" fill="#d4c6ff"/><rect class="hit" x="146" y="240" width="158" height="22" rx="3"/><text class="silk" x="306" y="255">M.2_1</text></g>
+  <g class="comp" data-id="pcie16_1" data-path="cpu" tabindex="0"><rect x="40" y="282" width="300" height="14" rx="2" fill="#222630"/><rect x="340" y="280" width="10" height="18" fill="#4a4f60"/><rect class="hit" x="36" y="278" width="318" height="22" rx="3"/><text class="silk" x="44" y="276">PCIEX16_1</text></g>
+  <g class="comp" data-id="pcie1" data-path="chipset" tabindex="0"><rect x="40" y="318" width="64" height="14" rx="2" fill="#222630"/><rect class="hit" x="36" y="314" width="72" height="22" rx="3"/><text class="silk" x="110" y="329">PCIEX1_1</text></g>
+  <g class="comp" data-id="cmos" data-path="lain" tabindex="0"><circle cx="200" cy="335" r="13" fill="#d6d9e0"/><circle cx="200" cy="335" r="9" fill="#bfc3cf"/><rect class="hit" x="185" y="320" width="30" height="30" rx="15"/><text class="silk" x="178" y="362">CMOS</text></g>
+  <g class="comp" data-id="bios" data-path="lain" tabindex="0"><rect x="236" y="324" width="22" height="22" fill="#2b2f3a"/><rect class="hit" x="232" y="320" width="30" height="30" rx="3"/><text class="silk" x="266" y="339">BIOS</text></g>
+  <g class="comp" data-id="pcie16_2" data-path="chipset" tabindex="0"><rect x="40" y="374" width="300" height="14" rx="2" fill="#222630"/><rect x="40" y="378" width="70" height="6" fill="#c8a24a" opacity=".9"/><rect class="hit" x="36" y="370" width="308" height="22" rx="3"/><text class="silk" x="44" y="368">PCIEX16_2 (×4)</text></g>
+  <g class="comp" data-id="m2_2" data-path="chipset" tabindex="0"><rect x="150" y="404" width="150" height="14" rx="2" fill="#7c4dff"/><circle cx="296" cy="411" r="3" fill="#d4c6ff"/><rect class="hit" x="146" y="400" width="158" height="22" rx="3"/><text class="silk" x="306" y="415">M.2_2</text></g>
+  <g class="comp" data-id="m2_3" data-path="chipset" tabindex="0"><rect x="150" y="438" width="150" height="14" rx="2" fill="#7c4dff"/><circle cx="296" cy="445" r="3" fill="#d4c6ff"/><rect class="hit" x="146" y="434" width="158" height="22" rx="3"/><text class="silk" x="306" y="449">M.2_3</text></g>
+  <g class="comp" data-id="chipset" data-path="lain" tabindex="0"><rect x="410" y="300" width="80" height="80" rx="4" fill="#8892a8"/><g stroke="#6b7185" stroke-width="3"><path d="M418 312 H482"/><path d="M418 324 H482"/><path d="M418 336 H482"/><path d="M418 348 H482"/><path d="M418 360 H482"/><path d="M418 372 H482"/></g><rect class="hit" x="406" y="296" width="88" height="88" rx="5"/><text class="silk" x="436" y="396">PCH</text></g>
+  <g class="comp" data-id="sata" data-path="chipset" tabindex="0"><g fill="#e85d75"><rect x="556" y="296" width="30" height="22" rx="2"/><rect x="556" y="324" width="30" height="22" rx="2"/><rect x="556" y="352" width="30" height="22" rx="2"/><rect x="556" y="380" width="30" height="22" rx="2"/></g><rect class="hit" x="552" y="292" width="38" height="114" rx="3"/><text class="silk" x="508" y="418">SATA6G_1–4</text></g>
+  <g class="comp" data-id="usbhdr" data-path="chipset" tabindex="0"><rect x="420" y="440" width="44" height="14" rx="2" fill="#2b2f3a"/><rect class="hit" x="416" y="436" width="52" height="22" rx="3"/><text class="silk" x="420" y="434">USB_F</text></g>
+  <g class="comp" data-id="fpanel" data-path="lain" tabindex="0"><rect x="500" y="446" width="56" height="14" rx="2" fill="#2b2f3a"/><rect class="hit" x="496" y="442" width="64" height="22" rx="3"/><text class="silk" x="500" y="440">F_PANEL</text></g>
+</svg>
+</template>
+
+<!-- TAB 1 -->
+<section id="panel-jelajah" role="tabpanel" aria-labelledby="tab-jelajah">
+  <div class="grid">
+    <div class="card">
+      <div class="boardbox" id="board1"></div>
+      <div class="toolbar">
+        <label><input type="checkbox" id="opt-silk" checked> Tampilkan tulisan silkscreen</label>
+        <label><input type="checkbox" id="opt-paths"> Warnai menurut sumber jalur</label>
+      </div>
+      <div class="legend" id="legend" hidden>
+        <span><i style="background:var(--cpu)"></i>Langsung ke CPU</span>
+        <span><i style="background:var(--chip)"></i>Lewat chipset</span>
+        <span><i style="background:var(--pwr)"></i>Jalur daya</span>
+      </div>
+    </div>
+    <div class="card" id="info" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- TAB 2 -->
+<section id="panel-kuis" role="tabpanel" aria-labelledby="tab-kuis" hidden>
+  <div class="grid">
+    <div class="card"><div class="boardbox" id="board2"></div><p class="note" style="margin:8px 0 0">Tulisan silkscreen disembunyikan selama kuis. Klik komponen yang sesuai dengan deskripsi.</p></div>
+    <div class="card">
+      <h2>Kuis Identifikasi</h2>
+      <p class="muted" style="margin:0 0 10px">10 soal acak. Baca deskripsinya, lalu klik komponen yang tepat pada motherboard.</p>
+      <div class="row" style="margin-bottom:10px">
+        <label for="q-name" class="muted" style="font-size:13px">Nama / NIM</label>
+        <input type="text" id="q-name" placeholder="mis. Rani · 2401047" style="flex:1;min-width:160px">
+      </div>
+      <div class="progress" aria-hidden="true"><span id="q-bar"></span></div>
+      <p class="muted" style="font-size:13px;margin:6px 0 0" id="q-count"></p>
+      <p class="q" id="q-text"></p>
+      <div id="q-feedback"></div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="q-next" hidden>Soal berikutnya</button><button class="btn ghost" id="q-restart">Mulai ulang</button></div>
+      <div id="q-result" hidden></div>
+    </div>
+  </div>
+</section>
+
+<!-- TAB 3 -->
+<section id="panel-sharing" role="tabpanel" aria-labelledby="tab-sharing" hidden>
+  <div class="grid">
+    <div class="card">
+      <h2>Motherboard "EDU-B760" (fiktif)</h2>
+      <p class="muted" style="margin:0 0 6px">Pilih perangkat yang dipasang di setiap slot. Tabel akan menunjukkan link yang terbentuk, apakah perangkat bisa bekerja maksimal, dan beban link CPU–chipset.</p>
+      <div class="row" style="margin:8px 0 12px">
+        <button class="btn ghost" data-preset="contoh">Contoh: PC lab</button>
+        <button class="btn ghost" data-preset="server">Contoh: server jaringan</button>
+        <button class="btn ghost" data-preset="storage">Contoh: penuh storage</button>
+        <button class="btn ghost" data-preset="kosong">Kosongkan</button>
+      </div>
+      <div class="tbl-wrap"><table class="t" id="slot-table"></table></div>
+      <h3>Catatan manual (lane sharing)</h3>
+      <ul class="note" style="margin:0;padding-left:18px">
+        <li><span class="code">M.2_3</span> berbagi jalur dengan <span class="code">SATA6G_3</span> dan <span class="code">SATA6G_4</span>. Jika M.2_3 dipakai, SATA6G_3–4 dinonaktifkan.</li>
+        <li>Jika <span class="code">PCIEX1_1</span> dipakai, <span class="code">PCIEX16_2</span> berjalan pada mode ×2.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Block Diagram</h2>
+      <div class="diagram" id="diagram"></div>
+      <h3>Beban link CPU–chipset (DMI 4.0 ×8 ≈ 15,8 GB/s)</h3>
+      <div class="meter"><span id="dmi-bar"></span></div>
+      <p id="dmi-text" style="margin:0"></p>
+      <p class="note">Beban dihitung saat semua perangkat di bawah chipset bekerja maksimal bersamaan (skenario terburuk).</p>
+    </div>
+  </div>
+</section>
+
+<!-- TAB 4 -->
+<section id="panel-kalkulator" role="tabpanel" aria-labelledby="tab-kalkulator" hidden>
+  <div class="grid">
+    <div class="card">
+      <h2>Kalkulator Link PCIe</h2>
+      <p class="muted" style="margin:0 0 12px">Link selalu bekerja di generasi dan lebar terendah dari kartu dan slot.</p>
+      <h3>Kartu</h3>
+      <div class="formgrid">
+        <label for="c-preset">Pilih kartu<select id="c-preset"></select></label>
+        <label for="c-gen">Generasi kartu<select id="c-gen"></select></label>
+        <label for="c-lanes">Lebar kartu<select id="c-lanes"></select></label>
+      </div>
+      <h3>Slot</h3>
+      <div class="formgrid">
+        <label for="s-gen">Generasi slot<select id="s-gen"></select></label>
+        <label for="s-phys">Panjang fisik slot<select id="s-phys"></select></label>
+        <label for="s-elec">Lane elektrik slot<select id="s-elec"></select></label>
+      </div>
+      <h3>Kebutuhan jaringan (opsional)</h3>
+      <div class="formgrid">
+        <label for="n-speed">Kecepatan per port<select id="n-speed"><option value="0">— tidak dihitung —</option><option value="1">1 GbE</option><option value="2.5">2,5 GbE</option><option value="10">10 GbE</option><option value="25">25 GbE</option><option value="40">40 GbE</option><option value="100">100 GbE</option></select></label>
+        <label for="n-ports">Jumlah port<select id="n-ports"><option>1</option><option>2</option><option>4</option></select></label>
+      </div>
+    </div>
+    <div class="card" id="calc-out" aria-live="polite"></div>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <h2>Tabel Bandwidth PCIe per Lane</h2>
+    <div class="tbl-wrap"><table class="t" id="gen-table"></table></div>
+    <p class="note">Bandwidth satu arah, setelah pengodean (8b/10b untuk Gen 1–2, 128b/130b untuk Gen 3–5, FLIT untuk Gen 6). 1 GB/s = 8 Gbps.</p>
+  </div>
+</section>
+</div>
+
+<script>
+(function () {
+  const PER = { 1: 0.25, 2: 0.5, 3: 0.985, 4: 1.969, 5: 3.938, 6: 7.563 };
+  const GT = { 1: 2.5, 2: 5, 3: 8, 4: 16, 5: 32, 6: 64 };
+  const fmt = (n, d = 2) => n.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: d });
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+
+  // ---------- Data komponen ----------
+  const C = {
+    io: { nama: 'Panel I/O belakang', path: 'chipset', fungsi: 'Kumpulan port yang terlihat dari belakang casing: USB, LAN (RJ-45), audio, dan port video.', jalur: 'Sebagian besar USB, LAN, dan audio berasal dari chipset; port video (HDMI/DP) berasal dari grafis terintegrasi di CPU.', ciri: 'Logam di tepi kiri atas, menempel pada pelat I/O shield casing.', ket: 'Pertemuan 7 (I/O) & 10' },
+    eps: { nama: 'Konektor daya CPU (EPS 8-pin)', path: 'daya', fungsi: 'Menyalurkan daya 12 V dari PSU khusus untuk CPU.', jalur: 'Jalur daya, bukan jalur data. Dialirkan ke VRM.', ciri: 'Konektor 4+4 atau 8 pin di pojok kiri atas, dekat VRM. Silkscreen sering “CPU_PWR” atau “ATX12V”.', ket: 'Pertemuan 10 & 11' },
+    vrm: { nama: 'VRM & heatsink-nya', path: 'daya', fungsi: 'Voltage Regulator Module: menurunkan 12 V dari PSU menjadi tegangan rendah (± 1 V) yang dibutuhkan CPU.', jalur: 'Jalur daya. Heatsink membuang panas dari komponen VRM.', ciri: 'Blok heatsink berbentuk huruf L di sekitar socket CPU.', ket: 'Pertemuan 10' },
+    socket: { nama: 'Socket CPU', path: 'lain', fungsi: 'Tempat memasang prosesor. Semua jalur utama — RAM, PCIe ×16, M.2_1, dan link ke chipset — berawal dari sini.', jalur: 'Pusat dari semua jalur. Di dalam CPU ada memory controller dan PCIe lane.', ciri: 'Persegi besar di tengah atas. Pin tipe LGA sangat halus dan mudah bengkok — jangan disentuh.', ket: 'Pertemuan 3, 10, 11' },
+    dimm: { nama: 'Slot RAM (DIMM)', path: 'cpu', fungsi: 'Tempat memasang modul RAM DDR4/DDR5. A1–A2 = channel A, B1–B2 = channel B.', jalur: 'Langsung ke memory controller di dalam CPU, tiap channel selebar 64 bit (data bus).', ciri: 'Empat slot panjang dengan pengunci di ujung. Untuk dual-channel dengan 2 keping, manual sering menyarankan A2 dan B2.', ket: 'Pertemuan 5 & 6' },
+    atx24: { nama: 'Konektor daya utama 24-pin', path: 'daya', fungsi: 'Menyalurkan daya dari PSU ke seluruh motherboard.', jalur: 'Jalur daya.', ciri: 'Konektor terbesar, di tepi kanan dekat slot RAM. Silkscreen sering “ATX_PWR” atau “ATXPWR1”.', ket: 'Pertemuan 10 & 11' },
+    m2_1: { nama: 'Slot M.2_1', path: 'cpu', fungsi: 'Slot SSD NVMe utama.', jalur: 'Langsung dari CPU: PCIe 4.0 ×4 ≈ 7,9 GB/s. Tempat terbaik untuk SSD sistem.', ciri: 'Slot pendek dekat socket dengan dudukan baut bertanda 2242/2260/2280. Sering tertutup heatsink M.2.', ket: 'Pertemuan 6 & 9' },
+    pcie16_1: { nama: 'Slot PCIEX16_1 (utama)', path: 'cpu', fungsi: 'Slot kartu grafis atau kartu berkecepatan tinggi.', jalur: 'Langsung dari CPU: PCIe 5.0 ×16 ≈ 63 GB/s.', ciri: 'Slot terpanjang dan teratas, sering berlapis pelindung logam, dengan pengunci di ujung.', ket: 'Pertemuan 6 & 10' },
+    pcie1: { nama: 'Slot PCIEX1_1', path: 'chipset', fungsi: 'Slot pendek untuk kartu kecil: NIC 1 GbE, Wi-Fi, sound card.', jalur: 'Dari chipset: PCIe 3.0 ×1 ≈ 1 GB/s. Tidak cukup untuk NIC 10 GbE.', ciri: 'Slot terpendek (± 25 mm).', ket: 'Pertemuan 6' },
+    cmos: { nama: 'Baterai CMOS', path: 'lain', fungsi: 'Baterai koin (CR2032) yang menjaga jam dan pengaturan BIOS/UEFI saat listrik mati.', jalur: 'Bukan jalur data.', ciri: 'Lingkaran logam berdiameter ± 2 cm, sering di dekat slot PCIe.', ket: 'Pertemuan 12 & 14' },
+    bios: { nama: 'Chip flash BIOS/UEFI', path: 'lain', fungsi: 'Menyimpan firmware UEFI/BIOS — memori non-volatile seperti di Pertemuan 5.', jalur: 'Terhubung ke chipset melalui bus SPI.', ciri: 'Chip hitam kecil 8 kaki, kadang dipasang di soket agar bisa dicabut.', ket: 'Pertemuan 5 & 12' },
+    pcie16_2: { nama: 'Slot PCIEX16_2 (×4 elektrik)', path: 'chipset', fungsi: 'Slot tambahan untuk NIC, kartu RAID, atau kartu capture.', jalur: 'Dari chipset: PCIe 4.0 ×4 ≈ 7,9 GB/s, padahal panjangnya ×16. Turun ke ×2 jika PCIEX1_1 dipakai.', ciri: 'Panjangnya sama dengan slot utama, tetapi kontak pin di dalamnya hanya sebagian (lihat bagian berwarna emas).', ket: 'Pertemuan 6' },
+    m2_2: { nama: 'Slot M.2_2', path: 'chipset', fungsi: 'Slot SSD NVMe kedua.', jalur: 'Dari chipset: PCIe 4.0 ×4, tetapi berbagi link CPU–chipset dengan USB, SATA, LAN, dan slot lain.', ciri: 'Slot M.2 di bawah slot PCIe, jauh dari socket.', ket: 'Pertemuan 6 & 9' },
+    m2_3: { nama: 'Slot M.2_3', path: 'chipset', fungsi: 'Slot SSD NVMe ketiga.', jalur: 'Dari chipset: PCIe 4.0 ×4. Jika dipakai, port SATA6G_3 dan SATA6G_4 dinonaktifkan (lane sharing).', ciri: 'Slot M.2 paling bawah. Catatan sharing-nya hanya ada di manual.', ket: 'Pertemuan 6' },
+    chipset: { nama: 'Chipset (PCH)', path: 'lain', fungsi: 'Terminal pembagi jalur: menyediakan USB, SATA, LAN, audio, dan lane PCIe tambahan.', jalur: 'Terhubung ke CPU lewat satu link DMI 4.0 ×8 (± 15,8 GB/s) yang dipakai bersama semua perangkat di bawahnya.', ciri: 'Heatsink pipih di kanan bawah, sering bergambar logo produsen.', ket: 'Pertemuan 6 & 10' },
+    sata: { nama: 'Port SATA (SATA6G_1–4)', path: 'chipset', fungsi: 'Port untuk HDD dan SSD 2,5 inci.', jalur: 'Dari chipset. SATA III = 6 Gb/s ≈ 0,6 GB/s per port.', ciri: 'Konektor berbentuk huruf L di tepi kanan, sering menghadap ke samping.', ket: 'Pertemuan 9' },
+    usbhdr: { nama: 'Header USB depan', path: 'chipset', fungsi: 'Pin untuk port USB di panel depan casing.', jalur: 'Dari chipset.', ciri: 'Barisan pin 9/19 pin di tepi bawah, silkscreen “USB” atau “F_USB”.', ket: 'Pertemuan 7 & 11' },
+    fpanel: { nama: 'Header panel depan (F_PANEL)', path: 'lain', fungsi: 'Pin untuk tombol power, tombol reset, LED power, dan LED HDD casing.', jalur: 'Sinyal kendali sederhana, bukan jalur data.', ciri: 'Barisan pin kecil di pojok kanan bawah dengan label PWR, RST, HDD, PLED.', ket: 'Pertemuan 11' },
+  };
+  const pathLabel = { cpu: ['Langsung ke CPU', 'cpu'], chipset: ['Lewat chipset', 'chipset'], daya: ['Jalur daya', 'daya'], lain: ['Lainnya', 'lain'] };
+
+  // ---------- Tabs ----------
+  const tabs = $$('nav.tabs button');
+  function showTab(name) {
+    tabs.forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+    ['jelajah', 'kuis', 'sharing', 'kalkulator'].forEach(t => { $('#panel-' + t).hidden = t !== name; });
+    try { localStorage.setItem('mb-lab-tab', name); } catch (e) {}
+  }
+  tabs.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+  // ---------- Boards ----------
+  const tpl = $('#board-tpl');
+  const b1 = $('#board1'); b1.appendChild(tpl.content.cloneNode(true));
+  const b2 = $('#board2'); b2.appendChild(tpl.content.cloneNode(true));
+  const svg1 = $('svg', b1), svg2 = $('svg', b2);
+  svg2.classList.add('hide-silk');
+
+  // ---------- Tab 1: Jelajah ----------
+  function renderInfo(id) {
+    const d = C[id]; const p = pathLabel[d.path];
+    $('#info').innerHTML = `<div class="kicker">Komponen terpilih</div><h2>${d.nama}</h2>
+      <dl class="facts"><dt>Sumber jalur</dt><dd><span class="chip ${p[1]}">${p[0]}</span></dd>
+      <dt>Fungsi</dt><dd>${d.fungsi}</dd><dt>Jalur & bus</dt><dd>${d.jalur}</dd>
+      <dt>Ciri fisik</dt><dd>${d.ciri}</dd><dt>Dibahas di</dt><dd>${d.ket}</dd></dl>`;
+  }
+  function selectComp(id) { $$('.comp', svg1).forEach(g => g.classList.toggle('sel', g.dataset.id === id)); renderInfo(id); }
+  $$('.comp', svg1).forEach(g => {
+    g.addEventListener('click', () => selectComp(g.dataset.id));
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectComp(g.dataset.id); } });
+    g.setAttribute('aria-label', C[g.dataset.id].nama);
+  });
+  $('#opt-silk').addEventListener('change', e => svg1.classList.toggle('hide-silk', !e.target.checked));
+  $('#opt-paths').addEventListener('change', e => { svg1.classList.toggle('paths', e.target.checked); $('#legend').hidden = !e.target.checked; });
+  selectComp('m2_1');
+
+  // ---------- Tab 2: Kuis ----------
+  const BANK = [
+    ['socket', 'Tempat memasang prosesor. Pinnya sangat halus dan mudah bengkok.'],
+    ['dimm', 'Tempat memasang modul RAM; terhubung langsung ke memory controller di CPU.'],
+    ['pcie16_1', 'Slot kartu grafis dengan 16 lane PCIe langsung dari CPU.'],
+    ['pcie1', 'Slot terpendek, cocok untuk NIC 1 GbE atau kartu Wi-Fi.'],
+    ['pcie16_2', 'Slot yang panjangnya ×16, tetapi hanya dialiri 4 lane dari chipset.'],
+    ['m2_1', 'Slot SSD NVMe yang terhubung langsung ke CPU — paling dekat dengan socket.'],
+    ['m2_3', 'Slot M.2 yang, jika dipakai, menonaktifkan dua port SATA.'],
+    ['m2_2', 'Slot SSD NVMe kedua yang lewat chipset dan berbagi link CPU–chipset.'],
+    ['chipset', 'Chip pembagi jalur di bawah heatsink; USB, SATA, dan LAN bermuara ke sini.'],
+    ['sata', 'Port untuk HDD atau SSD 2,5 inci, maksimum sekitar 0,6 GB/s.'],
+    ['atx24', 'Konektor daya utama motherboard dari PSU — yang terbesar.'],
+    ['eps', 'Konektor daya khusus CPU, biasanya 8 pin di pojok kiri atas.'],
+    ['cmos', 'Baterai koin yang menjaga jam dan pengaturan BIOS saat komputer mati.'],
+    ['bios', 'Chip flash berisi firmware UEFI/BIOS (memori non-volatile).'],
+    ['io', 'Kumpulan port yang terlihat dari belakang casing: USB, LAN, audio.'],
+    ['vrm', 'Heatsink di sekitar socket yang menurunkan tegangan untuk CPU.'],
+    ['fpanel', 'Pin untuk tombol power, reset, dan LED casing.'],
+    ['usbhdr', 'Pin untuk port USB di bagian depan casing.'],
+  ];
+  let quiz = [], qi = 0, score = 0, answered = false, wrongs = [];
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function startQuiz() { quiz = shuffle(BANK.slice()).slice(0, 10); qi = 0; score = 0; wrongs = []; $('#q-result').hidden = true; $('#q-text').hidden = false; showQ(); }
+  function clearMarks() { $$('.comp', svg2).forEach(g => g.classList.remove('right', 'wrong')); }
+  function showQ() {
+    clearMarks(); answered = false;
+    $('#q-count').textContent = `Soal ${qi + 1} dari ${quiz.length} · Skor ${score}`;
+    $('#q-bar').style.width = (qi / quiz.length * 100) + '%';
+    $('#q-text').textContent = quiz[qi][1];
+    $('#q-feedback').innerHTML = ''; $('#q-next').hidden = true;
+  }
+  function answer(id) {
+    if (answered || !quiz.length || qi >= quiz.length) return;
+    answered = true; const target = quiz[qi][0];
+    const g = $(`.comp[data-id="${id}"]`, svg2); const t = $(`.comp[data-id="${target}"]`, svg2);
+    if (id === target) { score++; g.classList.add('right'); $('#q-feedback').innerHTML = `<div class="feedback ok"><b>Benar.</b> Itu ${C[target].nama}. ${C[target].jalur}</div>`; }
+    else { g.classList.add('wrong'); t.classList.add('right'); wrongs.push(C[target].nama); $('#q-feedback').innerHTML = `<div class="feedback no"><b>Belum tepat.</b> Yang kamu klik adalah ${C[id].nama}. Jawaban yang benar ditandai hijau: ${C[target].nama}.</div>`; }
+    $('#q-count').textContent = `Soal ${qi + 1} dari ${quiz.length} · Skor ${score}`;
+    $('#q-next').hidden = false; $('#q-next').textContent = qi + 1 < quiz.length ? 'Soal berikutnya' : 'Lihat hasil';
+  }
+  function next() {
+    qi++;
+    if (qi < quiz.length) return showQ();
+    clearMarks(); $('#q-bar').style.width = '100%'; $('#q-next').hidden = true; $('#q-text').hidden = true; $('#q-feedback').innerHTML = '';
+    const name = $('#q-name').value.trim() || '(isi nama/NIM di atas)';
+    const now = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+    $('#q-result').hidden = false;
+    $('#q-result').innerHTML = `<div class="resultcard"><div class="kicker">Hasil Kuis Identifikasi · P6</div>
+      <div class="score">${score} / ${quiz.length}</div><p style="margin:6px 0 0"><b>${name.replace(/</g, '&lt;')}</b> · ${now}</p>
+      ${wrongs.length ? `<p class="note">Perlu dipelajari lagi: ${wrongs.join(', ')}.</p>` : '<p class="note">Sempurna — semua komponen teridentifikasi dengan benar.</p>'}
+      <p class="note">Tangkap layar kartu ini dan tempel di Lembar Kerja Praktikum (Tabel 1).</p></div>`;
+    $('#q-count').textContent = 'Selesai';
+  }
+  $$('.comp', svg2).forEach(g => {
+    g.addEventListener('click', () => answer(g.dataset.id));
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); answer(g.dataset.id); } });
+    g.setAttribute('aria-label', 'Komponen');
+  });
+  $('#q-next').addEventListener('click', next);
+  $('#q-restart').addEventListener('click', startQuiz);
+  startQuiz();
+
+  // ---------- Tab 3: Lane sharing ----------
+  const DEV = {
+    none: { nama: '— kosong —' },
+    gpu: { nama: 'Kartu grafis (PCIe 4.0 ×16)', gen: 4, lanes: 16, need: null },
+    nic10: { nama: 'NIC 10 GbE 2-port (PCIe 3.0 ×4)', gen: 3, lanes: 4, need: 2.5 },
+    nic25: { nama: 'NIC 25 GbE 2-port (PCIe 4.0 ×8)', gen: 4, lanes: 8, need: 6.25 },
+    nic1: { nama: 'NIC 1 GbE (PCIe 2.0 ×1)', gen: 2, lanes: 1, need: 0.125 },
+    nvme3: { nama: 'SSD NVMe Gen3 (± 3,5 GB/s)', gen: 3, lanes: 4, need: 3.5 },
+    nvme4: { nama: 'SSD NVMe Gen4 (± 7 GB/s)', gen: 4, lanes: 4, need: 7 },
+    nvme5: { nama: 'SSD NVMe Gen5 (± 12 GB/s)', gen: 5, lanes: 4, need: 12 },
+    sssd: { nama: 'SSD SATA (± 0,55 GB/s)', need: 0.55 },
+    hdd: { nama: 'HDD SATA (± 0,25 GB/s)', need: 0.25 },
+  };
+  const SLOTS = [
+    { id: 'PCIEX16_1', kind: 'pcie', src: 'CPU', gen: 5, phys: 16, elec: 16 },
+    { id: 'M.2_1', kind: 'm2', src: 'CPU', gen: 4, phys: 4, elec: 4 },
+    { id: 'PCIEX16_2', kind: 'pcie', src: 'Chipset', gen: 4, phys: 16, elec: 4 },
+    { id: 'PCIEX1_1', kind: 'pcie', src: 'Chipset', gen: 3, phys: 1, elec: 1 },
+    { id: 'M.2_2', kind: 'm2', src: 'Chipset', gen: 4, phys: 4, elec: 4 },
+    { id: 'M.2_3', kind: 'm2', src: 'Chipset', gen: 4, phys: 4, elec: 4 },
+    { id: 'SATA6G_1', kind: 'sata', src: 'Chipset' }, { id: 'SATA6G_2', kind: 'sata', src: 'Chipset' },
+    { id: 'SATA6G_3', kind: 'sata', src: 'Chipset' }, { id: 'SATA6G_4', kind: 'sata', src: 'Chipset' },
+  ];
+  const OPTS = { pcie: ['none', 'gpu', 'nic10', 'nic25', 'nic1'], m2: ['none', 'nvme3', 'nvme4', 'nvme5'], sata: ['none', 'sssd', 'hdd'] };
+  const PRESETS = {
+    contoh: { 'PCIEX16_1': 'gpu', 'M.2_1': 'nvme4', 'PCIEX16_2': 'nic10', 'SATA6G_1': 'hdd' },
+    server: { 'PCIEX16_1': 'nic25', 'M.2_1': 'nvme4', 'PCIEX16_2': 'nic10', 'PCIEX1_1': 'nic1', 'M.2_2': 'nvme4', 'SATA6G_1': 'hdd', 'SATA6G_2': 'hdd' },
+    storage: { 'PCIEX16_1': 'gpu', 'M.2_1': 'nvme5', 'M.2_2': 'nvme4', 'M.2_3': 'nvme4', 'SATA6G_1': 'sssd', 'SATA6G_2': 'hdd', 'SATA6G_3': 'hdd', 'SATA6G_4': 'hdd' },
+    kosong: {},
+  };
+  let state = Object.assign({}, PRESETS.contoh);
+  const table = $('#slot-table');
+  function evaluate() {
+    const used = id => state[id] && state[id] !== 'none';
+    return SLOTS.map(s => {
+      const devKey = state[s.id] || 'none'; const d = DEV[devKey];
+      const r = { s, devKey, d, link: '—', bw: 0, status: ['off', 'Kosong'], why: '' };
+      if (devKey === 'none') return r;
+      if (s.kind === 'sata') {
+        if ((s.id === 'SATA6G_3' || s.id === 'SATA6G_4') && used('M.2_3')) { r.status = ['bad', 'Nonaktif']; r.why = 'Port ini mati karena M.2_3 dipakai (lane sharing).'; r.bw = 0; return r; }
+        r.link = 'SATA III'; r.bw = 0.6; r.status = ['ok', 'Lancar']; r.used = d.need; return r;
+      }
+      let elec = s.elec; let note = '';
+      if (s.id === 'PCIEX16_2' && used('PCIEX1_1')) { elec = 2; note = 'Turun ke ×2 karena PCIEX1_1 dipakai. '; }
+      if (d.lanes > s.phys) { r.status = ['bad', 'Tidak muat']; r.why = `Kartu ×${d.lanes} tidak muat secara fisik di slot ×${s.phys}.`; return r; }
+      const g = Math.min(d.gen, s.gen), l = Math.min(d.lanes, elec);
+      r.link = `PCIe ${g}.0 ×${l}`; r.bw = PER[g] * l;
+      if (d.need == null) { r.status = (g < d.gen || l < d.lanes) ? ['warn', 'Jalan, tidak penuh'] : ['ok', 'Lancar']; r.used = r.bw; r.why = note + (g < d.gen || l < d.lanes ? `Kartu dirancang PCIe ${d.gen}.0 ×${d.lanes}, link turun menjadi ${r.link}.` : ''); }
+      else if (r.bw >= d.need) { r.status = ['ok', 'Lancar']; r.used = d.need; r.why = note + `Butuh ${fmt(d.need)} GB/s, link menyediakan ${fmt(r.bw)} GB/s.`; }
+      else { r.status = ['warn', 'Bottleneck']; r.used = r.bw; r.why = note + `Butuh ${fmt(d.need)} GB/s, link hanya ${fmt(r.bw)} GB/s (± ${fmt(r.bw / d.need * 100, 0)}% kemampuan).`; }
+      return r;
+    });
+  }
+  function renderSharing() {
+    const res = evaluate();
+    table.innerHTML = `<thead><tr><th>Slot</th><th>Perangkat</th><th>Link & status</th></tr></thead><tbody>` +
+      res.map(r => `<tr><td><span class="code">${r.s.id}</span><div class="note">${r.s.src} · ${r.s.kind === 'sata' ? 'SATA III' : `PCIe ${r.s.gen}.0, fisik ×${r.s.phys}, elektrik ×${r.s.elec}`}</div></td>
+        <td><select id="sel-${r.s.id.replace('.', '')}" data-slot="${r.s.id}" aria-label="Perangkat di ${r.s.id}" style="width:100%">${OPTS[r.s.kind].map(k => `<option value="${k}" ${k === r.devKey ? 'selected' : ''}>${DEV[k].nama}</option>`).join('')}</select>${r.why ? `<div class="note">${r.why}</div>` : ''}</td>
+        <td class="num"><span class="status ${r.status[0]}">${r.status[1]}</span><div>${r.link}</div><div class="note">${r.bw ? '≈ ' + fmt(r.bw) + ' GB/s' : ''}</div></td></tr>`).join('') + '</tbody>';
+    $$('select', table).forEach(sel => sel.addEventListener('change', e => { state[e.target.dataset.slot] = e.target.value; renderSharing(); }));
+    // diagram
+    const kid = r => `<div class="kid"><b>${r.s.id}</b> · ${r.devKey === 'none' ? '<span class="muted">kosong</span>' : DEV[r.devKey].nama} <span class="status ${r.status[0]}">${r.status[1]}</span></div>`;
+    const cpuK = res.filter(r => r.s.src === 'CPU'), chK = res.filter(r => r.s.src === 'Chipset');
+    $('#diagram').innerHTML = `<div class="node cpu">CPU<small>memory controller (2 channel DDR) + 20 lane PCIe</small></div>
+      <div class="kids">${cpuK.map(kid).join('')}</div>
+      <div class="note" style="text-align:center">↕ link CPU–chipset: DMI 4.0 ×8 ≈ 15,8 GB/s</div>
+      <div class="node chip">Chipset (PCH)<small>USB, LAN, audio + slot & port di bawah</small></div>
+      <div class="kids">${chK.map(kid).join('')}</div>`;
+    const load = chK.reduce((a, r) => a + (r.used || 0), 0) + 0.6; // + USB/LAN onboard
+    const cap = 15.75, pct = Math.min(100, load / cap * 100);
+    const bar = $('#dmi-bar'); bar.style.width = pct + '%'; bar.style.background = load > cap ? 'var(--bad)' : load > cap * 0.75 ? 'var(--warn)' : 'var(--good)';
+    $('#dmi-text').innerHTML = `<b>${fmt(load)} GB/s</b> dari ${fmt(cap)} GB/s (${fmt(load / cap * 100, 0)}%) — termasuk ± 0,6 GB/s USB & LAN onboard. ` +
+      (load > cap ? '<span class="status bad">Kelebihan beban</span> Jika semua sibuk bersamaan, perangkat di bawah chipset harus berbagi dan melambat.' : load > cap * 0.75 ? '<span class="status warn">Hampir penuh</span>' : '<span class="status ok">Aman</span>');
+  }
+  $$('[data-preset]').forEach(b => b.addEventListener('click', () => { state = Object.assign({}, PRESETS[b.dataset.preset]); renderSharing(); }));
+  renderSharing();
+
+  // ---------- Tab 4: Kalkulator ----------
+  const CARDS = [['custom', 'Atur sendiri'], ['nic10', 'NIC 10 GbE 2-port (PCIe 3.0 ×4)'], ['nic25', 'NIC 25 GbE 2-port (PCIe 4.0 ×8)'], ['nic1', 'NIC 1 GbE (PCIe 2.0 ×1)'], ['nvme4', 'SSD NVMe Gen4 (PCIe 4.0 ×4)'], ['nvme5', 'SSD NVMe Gen5 (PCIe 5.0 ×4)'], ['gpu', 'Kartu grafis (PCIe 4.0 ×16)']];
+  const NET = { nic10: [10, 2], nic25: [25, 2], nic1: [1, 1] };
+  const opt = (sel, items, val) => { sel.innerHTML = items.map(([v, t]) => `<option value="${v}" ${String(v) === String(val) ? 'selected' : ''}>${t}</option>`).join(''); };
+  const gens = [1, 2, 3, 4, 5, 6].map(g => [g, `PCIe ${g}.0`]), widths = [1, 2, 4, 8, 16].map(w => [w, `×${w}`]);
+  opt($('#c-preset'), CARDS, 'nic10'); opt($('#c-gen'), gens, 3); opt($('#c-lanes'), widths, 4);
+  opt($('#s-gen'), gens, 4); opt($('#s-phys'), widths, 16); opt($('#s-elec'), widths, 4);
+  $('#n-speed').value = '10'; $('#n-ports').value = '2';
+  $('#c-preset').addEventListener('change', e => {
+    const k = e.target.value; if (k === 'custom') return calc();
+    const d = DEV[k]; $('#c-gen').value = d.gen; $('#c-lanes').value = d.lanes;
+    if (NET[k]) { $('#n-speed').value = String(NET[k][0]); $('#n-ports').value = String(NET[k][1]); } else { $('#n-speed').value = '0'; }
+    calc();
+  });
+  ['#c-gen', '#c-lanes'].forEach(s => $(s).addEventListener('change', () => { $('#c-preset').value = 'custom'; calc(); }));
+  ['#s-gen', '#s-phys', '#s-elec', '#n-speed', '#n-ports'].forEach(s => $(s).addEventListener('change', calc));
+  function calc() {
+    const cg = +$('#c-gen').value, cl = +$('#c-lanes').value, sg = +$('#s-gen').value, sp = +$('#s-phys').value;
+    let se = +$('#s-elec').value; let warnElec = '';
+    if (se > sp) { se = sp; $('#s-elec').value = sp; warnElec = 'Lane elektrik tidak mungkin lebih besar dari panjang fisik; disamakan dengan panjang fisik. '; }
+    const out = $('#calc-out');
+    if (cl > sp) { out.innerHTML = `<h2>Hasil</h2><p><span class="status bad">Tidak muat</span></p><p>Kartu ×${cl} tidak bisa dipasang di slot fisik ×${sp} (slot tertutup). Pilih slot yang lebih panjang.</p>`; return; }
+    const g = Math.min(cg, sg), l = Math.min(cl, se), bw = PER[g] * l;
+    const speed = +$('#n-speed').value, ports = +$('#n-ports').value, need = speed * ports / 8;
+    const reasons = [];
+    if (cg !== sg) reasons.push(`generasi turun ke ${g}.0 karena ${cg < sg ? 'kartu' : 'slot'} lebih lama`);
+    if (cl !== se) reasons.push(`lebar menjadi ×${l} karena ${cl < se ? 'kartu' : 'slot'} lebih sempit`);
+    let needHtml = '';
+    if (speed > 0) {
+      const ok = bw >= need, pct = Math.min(100, bw / need * 100);
+      needHtml = `<h3>Kebutuhan jaringan</h3><p style="margin:0">${ports} × ${fmt(speed)} Gbps = ${fmt(speed * ports)} Gbps = <b>${fmt(need, 3)} GB/s</b></p>
+        <div class="meter"><span style="width:${pct}%;background:${ok ? 'var(--good)' : 'var(--warn)'}"></span></div>
+        <p style="margin:0"><span class="status ${ok ? 'ok' : 'warn'}">${ok ? 'Cukup' : 'Bottleneck'}</span> ${ok ? `Link ${fmt(bw)} GB/s melebihi kebutuhan ${fmt(need, 3)} GB/s.` : `Link hanya ${fmt(bw)} GB/s (± ${fmt(bw * 8, 1)} Gbps) — NIC hanya bisa mencapai ± ${fmt(pct, 0)}% kecepatannya.`}</p>`;
+    }
+    out.innerHTML = `<h2>Hasil</h2><div class="kicker">Link yang terbentuk</div><div class="big">PCIe ${g}.0 ×${l}</div>
+      <div class="result-line" style="margin-top:8px"><div><div class="muted" style="font-size:13px">Bandwidth satu arah</div><div class="big" style="font-size:30px">${fmt(bw)} GB/s</div></div>
+      <div><div class="muted" style="font-size:13px">Setara</div><div class="big" style="font-size:30px">${fmt(bw * 8, 1)} Gbps</div></div></div>
+      <p class="note">${warnElec}Perhitungan: ${fmt(PER[g], 3)} GB/s per lane (PCIe ${g}.0) × ${l} lane.${reasons.length ? ' Catatan: ' + reasons.join('; ') + '.' : ' Kartu dan slot cocok sepenuhnya.'}</p>${needHtml}`;
+  }
+  calc();
+  $('#gen-table').innerHTML = '<thead><tr><th>Generasi</th><th>GT/s per lane</th><th>≈ GB/s per lane</th><th>×1</th><th>×4</th><th>×8</th><th>×16</th></tr></thead><tbody>' +
+    [1, 2, 3, 4, 5, 6].map(g => `<tr><td>PCIe ${g}.0</td><td class="num">${fmt(GT[g], 1)}</td><td class="num">${fmt(PER[g], 3)}</td>${[1, 4, 8, 16].map(w => `<td class="num">${fmt(PER[g] * w, 2)}</td>`).join('')}</tr>`).join('') + '</tbody>';
+
+  // initial tab
+  let start = (location.hash || '').replace('#', '');
+  if (!['jelajah', 'kuis', 'sharing', 'kalkulator'].includes(start)) { try { start = localStorage.getItem('mb-lab-tab') || 'jelajah'; } catch (e) { start = 'jelajah'; } }
+  showTab(['jelajah', 'kuis', 'sharing', 'kalkulator'].includes(start) ? start : 'jelajah');
+})();
+</script>
+
+</body></html>
